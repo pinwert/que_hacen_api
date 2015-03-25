@@ -1,5 +1,7 @@
 var restify = require('restify');
 var mongojs = require('mongojs');
+var search = require('./services/search');
+var diputados = require('./services/diputados');
 
 var serverConfig = {
     'server': 'localhost',
@@ -35,35 +37,13 @@ apiServer
 /***** API *****/
 
 apiServer.get('/diputados', function(req, res) {
-
-    var collection = db.collection('diputados');
-    var noShow = {
-        '_id': 0
-    };
-
-    if (!Object.keys(req.params.q).length) {
-        req.params.q['activo'] = 1;
-    }
-
-    console.log(req.params.q);
-
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['normalized.apellidos'] = 1;
-        req.params.order['normalized.nombre'] = 1;
-    }
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .sort(req.params.order)
-        .limit(req.params.limit)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
+    diputados.get(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/diputados/bienes', function(req, res) {
@@ -651,7 +631,6 @@ apiServer.get('/organos', function(req, res) {
 });
 
 apiServer.get('/eventos', function(req, res) {
-
     var collection = db.collection('eventos');
     var noShow = {
         '_id': 0
@@ -678,6 +657,16 @@ apiServer.get('/eventos', function(req, res) {
 apiServer.get('/', function(req, res) {
     //console.log(db);
     res.send(apiServer.name);
+});
+
+apiServer.get('/search', function(req,res){
+	search.search(req.query.bus,function(err,response){
+	  	if(err){
+		    res.status(err.status).send(err);
+		    return;
+	  	}		
+		res.send(response);
+	});
 });
 
 apiServer.get('/test', function(req, res) {

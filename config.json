@@ -1,0 +1,7 @@
+{
+	"serverConfig":{
+	    "server": "localhost",
+	    "port": "3002",
+	    "mongoDB": "que_hacen"
+	}
+}
