@@ -2,13 +2,12 @@
 var mongojs = require('mongojs');
 var config = require('../config');
 var db = mongojs(config.serverConfig.mongoDB);
+var collection = db.collection('diputados');
+var noShow = {
+    '_id': 0
+};
 
 function get(params,cb){
-	var collection = db.collection('diputados');
-    var noShow = {
-        '_id': 0
-    };
-
     if (!Object.keys(params.q).length) {
         params.q['activo'] = 1;
     }
@@ -24,6 +23,26 @@ function get(params,cb){
         .sort(params.order)
         .limit(params.limit)
         .toArray(cb);
+}
+
+function getById(params,cb){
+
+    collection
+        .findOne({
+            'id': parseInt(params.id)
+        }, params.only || params.not || noShow, cb);
+}
+
+function getVotaciones(params, cb){
+
+    collection
+        .findOne({
+            'id': parseInt(params.id)
+        }, {
+            '_id': 0,
+            apellidos: 1,
+            nombre: 1
+        }, cb);
 }
 
 module.exports = {

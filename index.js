@@ -2,6 +2,12 @@ var restify = require('restify');
 var mongojs = require('mongojs');
 var search = require('./services/search');
 var diputados = require('./services/diputados');
+var grupos = require('./services/grupos');
+var formaciones = require('./services/formaciones');
+var votaciones = require('./services/votaciones');
+var iniciativas = require('./services/iniciativas');
+var organos = require('./services/organos');
+var bienes = require('./services/bienes');
 
 var serverConfig = {
     'server': 'localhost',
@@ -47,97 +53,41 @@ apiServer.get('/diputados', function(req, res) {
 });
 
 apiServer.get('/diputados/bienes', function(req, res) {
-
-    var collection = db.collection('bienes');
-    var noShow = {
-        '_id': 0
-    };
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['tipo'] = 1;
-    }
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .sort(req.params.order)
-        .limit(req.params.limit)
-        .toArray(function(err, docs) {
-            //res.send([docs, docs2]);
-            res.send(docs);
-        });
+    bienes.get(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/diputado/:id', function(req, res) {
-
-    var collection = db.collection('diputados');
-    var noShow = {
-        '_id': 0
-    };
-
-    collection
-        .findOne({
-            'id': parseInt(req.params.id)
-        }, req.params.only || req.params.not || noShow, function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
+    diputados.getById(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/diputado/:id/votaciones', function(req, res) {
-
-    var collection = db.collection('diputados');
-    var noShow = {
-        '_id': 0
-    };
-
-    collection
-        .findOne({
-            'id': parseInt(req.params.id)
-        }, {
-            '_id': 0,
-            apellidos: 1,
-            nombre: 1
-        }, function(err, docs) {
-
-            if (err) {
-                res.send(err);
-                return;
-            }
-
-            var votaciones = db.collection('votacion');
-            if (!req.params.order) {
-                req.params.order = {};
-                req.params.order['fecha'] = -1;
-            }
-
-            req.params.q['xml.resultado.votaciones.votacion'] = {
-                $elemMatch: {
-                    'diputado': docs.apellidos + ', ' + docs.nombre
-                }
-            };
-
-            votaciones
-                .find(req.params.q, req.params.only || req.params.not || {
-                    '_id': 0,
-                    'legislatura': 1,
-                    'num': 1,
-                    'numExpediente': 1,
-                    'url': 1,
-                    'fecha': 1,
-                    'xml.resultado.informacion': 1,
-                    'xml.resultado.totales': 1,
-                    'xml.resultado.votaciones.votacion.$': 1
-                })
-                .sort(req.params.order)
-                .limit(req.params.limit)
-                .toArray(function(err2, docs2) {
-                    //res.send([docs, docs2]);    
-                    res.send(docs2);
-                });
-        });
+    diputados.getVotaciones(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        req.params.nombre = docs.nombre;
+        req.params.apellidos = docs.apellidos;
+        votaciones.getByDiputado(req.params,function(err, docs) {
+	        if (err) {
+	            res.send(err);
+	            return;
+	        }
+	        res.send(docs);
+	    });
+    });
 });
 
 apiServer.get('/diputado/:id/iniciativas', function(req, res) {
@@ -205,22 +155,13 @@ apiServer.get('/diputado/:id/bienes', function(req, res) {
 
 
 apiServer.get('/grupos', function(req, res) {
-
-    var collection = db.collection('grupos');
-    var noShow = {
-        '_id': 0
-    };
-
-    collection.find(req.params.q, req.params.only || req.params.not || noShow)
-        .sort(req.params.order)
-        .limit(req.params.limit)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
+    grupos.get(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/grupo/:id', function(req, res) {
@@ -321,22 +262,13 @@ apiServer.get('/grupo/:id/iniciativas', function(req, res) {
 });
 
 apiServer.get('/formaciones', function(req, res) {
-    var collection = db.collection('formaciones');
-    var noShow = {
-        '_id': 0
-    };
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .limit(req.params.limit)
-        .sort(req.params.order)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
+    formaciones.get(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/formacion/:id', function(req, res) {
@@ -358,42 +290,25 @@ apiServer.get('/formacion/:id', function(req, res) {
 });
 
 apiServer.get('/votaciones', function(req, res) {
-
-    var collection = db.collection('votacion');
-    var noShow = {
-        '_id': 0
-    };
-
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['fecha'] = -1;
-    }
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .limit(req.params.limit)
-        .skip(req.params.skip)
-        .sort(req.params.order)
-        .toArray(function(err, docs) {
-	    if (err) {
-                res.send(err);
-                return;
-            }
-            if (req.params.count == 1) {
-                collection.find(req.params.q).count(function(err, resp) {
-                    if (err) {
-                        res.send(err);
-                        return;
-                    }
-                    var resul = {};
-                    resul.totalObjects = resp;
-                    resul.result = docs;
-                    res.send(resul);
-                });
-            } else {
-                res.send(docs);
-            }
-        });
+    votaciones.get(req.params,function(err, docs) {
+     	if (err) {
+            res.send(err);
+            return;
+        }
+        if (req.params.count == 1) {
+            return votaciones.count(req.params.q,function(err, resp) {
+                if (err) {
+                    res.send(err);
+                    return;
+                }
+                var resul = {};
+                resul.totalObjects = resp;
+                resul.result = docs;
+                res.send(resul);
+            });
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/votacion/:session', function(req, res) {
@@ -452,42 +367,25 @@ apiServer.get('/votacion/:session/:votacion', function(req, res) {
 });
 
 apiServer.get('/iniciativas', function(req, res) {
-
-    var collection = db.collection('iniciativas');
-    var noShow = {
-        '_id': 0
-    };
-
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['presentadoJS2'] = -1;
-    }
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .limit(req.params.limit)
-        .skip(req.params.skip)
-        .sort(req.params.order)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            if (req.params.count == 1) {
-                collection.find(req.params.q).count(function(err, resp) {
-                    if (err) {
-                        res.send(err);
-                        return;
-                    }
-                    var resul = {};
-                    resul.totalObjects = resp;
-                    resul.result = docs;
-                    res.send(resul);
-                });
-            } else {
-                res.send(docs);
-            }
-        });
+    iniciativas.get(req.params,function(err, docs) {
+     	if (err) {
+            res.send(err);
+            return;
+        }
+        if (req.params.count == 1) {
+            return iniciativas.count(req.params.q,function(err, resp) {
+                if (err) {
+                    res.send(err);
+                    return;
+                }
+                var resul = {};
+                resul.totalObjects = resp;
+                resul.result = docs;
+                res.send(resul);
+            });
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/intervenciones', function(req, res) {
@@ -531,28 +429,13 @@ apiServer.get('/intervenciones', function(req, res) {
 
 
 apiServer.get('/circunscripciones', function(req, res) {
-
-    var collection = db.collection('circunscripciones');
-    var noShow = {
-        '_id': 0
-    };
-
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['normalized.nombre'] = 1;
-    }
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .limit(req.params.limit)
-        .sort(req.params.order)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
+    circunscripciones.get(req.params,function(err, docs) {
+     	if (err) {
+            res.send(err);
+            return;
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/circunscripcion/:id', function(req, res) {
@@ -611,23 +494,13 @@ apiServer.get('/circunscripcion/:id/diputados', function(req, res) {
 });
 
 apiServer.get('/organos', function(req, res) {
-
-    var collection = db.collection('organos');
-    var noShow = {
-        '_id': 0
-    };
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .sort(req.params.order)
-        .limit(req.params.limit)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
+    organos.get(req.params,function(err, docs) {
+     	if (err) {
+            res.send(err);
+            return;
+        }
+        res.send(docs);
+    });
 });
 
 apiServer.get('/eventos', function(req, res) {

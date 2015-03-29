@@ -2,14 +2,20 @@
 var mongojs = require('mongojs');
 var config = require('../config');
 var db = mongojs(config.serverConfig.mongoDB);
-var collection = db.collection('grupos');
+var collection = db.collection('bienes');       
 var noShow = {
     '_id': 0
 };
 
-function get(params,cb){
 
-    collection.find(params.q, params.only || params.not || noShow)
+function get(params,cb){
+    if (!params.order) {
+        params.order = {};
+        params.order['tipo'] = 1;
+    }
+
+    collection
+        .find(params.q, params.only || params.not || noShow)
         .sort(params.order)
         .limit(params.limit)
         .toArray(cb);
