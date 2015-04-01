@@ -8,6 +8,7 @@ var votaciones = require('./services/votaciones');
 var iniciativas = require('./services/iniciativas');
 var organos = require('./services/organos');
 var bienes = require('./services/bienes');
+var intervenciones = require('./services/intervenciones');
 
 var serverConfig = {
     'server': 'localhost',
@@ -42,420 +43,25 @@ apiServer
 
 /***** API *****/
 
-apiServer.get('/diputados', function(req, res) {
-    diputados.get(req.params,function(err, docs) {
-        if (err) {
-            res.send(err);
-            return;
-        }
-        res.send(docs);
-    });
-});
-
-apiServer.get('/diputados/bienes', function(req, res) {
-    bienes.get(req.params,function(err, docs) {
-        if (err) {
-            res.send(err);
-            return;
-        }
-        res.send(docs);
-    });
-});
-
-apiServer.get('/diputado/:id', function(req, res) {
-    diputados.getById(req.params,function(err, docs) {
-        if (err) {
-            res.send(err);
-            return;
-        }
-        res.send(docs);
-    });
-});
-
-apiServer.get('/diputado/:id/votaciones', function(req, res) {
-    diputados.getVotaciones(req.params,function(err, docs) {
-        if (err) {
-            res.send(err);
-            return;
-        }
-        req.params.nombre = docs.nombre;
-        req.params.apellidos = docs.apellidos;
-        votaciones.getByDiputado(req.params,function(err, docs) {
-	        if (err) {
-	            res.send(err);
-	            return;
-	        }
-	        res.send(docs);
-	    });
-    });
-});
-
-apiServer.get('/diputado/:id/iniciativas', function(req, res) {
-    var collection = db.collection('diputados');
-    var noShow = {
-        '_id': 0
-    };
-    collection
-        .findOne({
-                'id': parseInt(req.params.id)
-            }, {
-                apellidos: 1,
-                nombre: 1
-            },
-            function(err, docs) {
-                if (err) {
-                    res.send(err);
-                    return;
-                }
-
-                if (!req.params.order) {
-                    req.params.order = {};
-                    req.params.order['presentadoJS'] = -1;
-                }
-
-                req.params.q['autores'] = {
-                    $in: [parseInt(req.params.id)]
-                };
-                req.params.q['tipo_autor'] = "Diputado";
-
-                var iniciativas = db.collection('iniciativas');
-                iniciativas
-                    .find(req.params.q, req.params.only || req.params.not || noShow)
-                    .sort(req.params.order)
-                    .limit(req.params.limit)
-                    .toArray(function(err2, docs2) {
-                        //res.send([docs, docs2]);
-                        res.send(docs2);
-                    });
-            }
-    );
-});
-
-apiServer.get('/diputado/:id/bienes', function(req, res) {
-    var collection = db.collection('bienes');
-    var noShow = {
-        '_id': 0
-    };
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['tipo'] = 1;
-    }
-
-    req.params.q['idDipu'] = parseInt(req.params.id);
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .sort(req.params.order)
-        .limit(req.params.limit)
-        .toArray(function(err, docs) {
-            //res.send([docs, docs2]);
-            res.send(docs);
-        });
-});
-
-
-apiServer.get('/grupos', function(req, res) {
-    grupos.get(req.params,function(err, docs) {
-        if (err) {
-            res.send(err);
-            return;
-        }
-        res.send(docs);
-    });
-});
-
-apiServer.get('/grupo/:id', function(req, res) {
-
-    var collection = db.collection('grupos');
-    var noShow = {
-        '_id': 0
-    };
-
-    req.params.q['id'] = parseInt(req.params.id);
-
-    collection
-        .findOne(req.params.q, req.params.only || req.params.not || noShow, function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
-});
-
-apiServer.get('/grupo/:id/diputados', function(req, res) {
-
-    var collection = db.collection('grupos');
-    var noShow = {
-        '_id': 0
-    };
-
-    collection
-        .findOne({
-            'id': parseInt(req.params.id)
-        }, noShow, function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-
-            if (!req.params.order) {
-                req.params.order = {};
-                req.params.order['normalized.apellidos'] = 1;
-                req.params.order['normalized.nombre'] = 1;
-            }
-
-            req.params.q['activo'] = 1;
-            req.params.q['grupo'] = docs.nombre;
-
-            db.collection('diputados')
-                .find(req.params.q, req.params.only || req.params.not || noShow)
-                .sort(req.params.order)
-                .limit(req.params.limit)
-                .toArray(function(err, docs2) {
-                    if (err) {
-                        res.send(err);
-                        return;
-                    }
-                    res.send(docs2);
-                });
-        });
-});
-
-apiServer.get('/grupo/:id/iniciativas', function(req, res) {
-
-    var collection = db.collection('grupos');
-    var noShow = {
-        '_id': 0
-    };
-
-    collection
-        .findOne({
-            'id': parseInt(req.params.id)
-        }, noShow, function(err, docs) {
-
-            if (err) {
-                res.send(err);
-                return;
-            }
-
-            var iniciativas = db.collection('iniciativas');
-            if (!req.params.order) {
-                req.params.order = {};
-                req.params.order['presentadoJS'] = -1;
-            }
-
-            req.params.q['autores'] = {
-                $in: [parseInt(req.params.id)]
-            };
-            req.params.q['tipo_autor'] = "Grupo";
-
-            iniciativas
-                .find(req.params.q, req.params.only || req.params.not || noShow)
-                .sort(req.params.order)
-                .limit(req.params.limit)
-                .toArray(function(err2, docs2) {
-                    //res.send([docs, docs2]);
-                    res.send(docs2);
-                });
-        });
-});
-
-apiServer.get('/formaciones', function(req, res) {
-    formaciones.get(req.params,function(err, docs) {
-        if (err) {
-            res.send(err);
-            return;
-        }
-        res.send(docs);
-    });
-});
-
-apiServer.get('/formacion/:id', function(req, res) {
-    var collection = db.collection('formaciones');
-    var noShow = {
-        '_id': 0
-    };
-
-    req.params.q['id'] = parseInt(req.params.id);
-
-    collection
-        .findOne(req.params.q, req.params.only || req.params.not || noShow, function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
-});
-
-apiServer.get('/votaciones', function(req, res) {
-    votaciones.get(req.params,function(err, docs) {
-     	if (err) {
-            res.send(err);
-            return;
-        }
-        if (req.params.count == 1) {
-            return votaciones.count(req.params.q,function(err, resp) {
-                if (err) {
-                    res.send(err);
-                    return;
-                }
-                var resul = {};
-                resul.totalObjects = resp;
-                resul.result = docs;
-                res.send(resul);
-            });
-        }
-        res.send(docs);
-    });
-});
-
-apiServer.get('/votacion/:session', function(req, res) {
-
-    var collection = db.collection('votacion');
-    var noShow = {
-        '_id': 0
-    };
-
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['fecha'] = -1;
-    }
-
-    req.params.q['xml.resultado.informacion.sesion'] = req.params.session;
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .limit(req.params.limit)
-        .sort(req.params.order)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
-});
-
-apiServer.get('/votacion/:session/:votacion', function(req, res) {
-
-    var collection = db.collection('votacion');
-    var noShow = {
-        '_id': 0
-    };
-
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['fecha'] = -1;
-    }
-
-    req.params.q['xml.resultado.informacion.sesion'] = req.params.session;
-    req.params.q['xml.resultado.informacion.numerovotacion'] = req.params.votacion;
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .limit(req.params.limit)
-        .sort(req.params.order)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
-});
-
-apiServer.get('/iniciativas', function(req, res) {
-    iniciativas.get(req.params,function(err, docs) {
-     	if (err) {
-            res.send(err);
-            return;
-        }
-        if (req.params.count == 1) {
-            return iniciativas.count(req.params.q,function(err, resp) {
-                if (err) {
-                    res.send(err);
-                    return;
-                }
-                var resul = {};
-                resul.totalObjects = resp;
-                resul.result = docs;
-                res.send(resul);
-            });
-        }
-        res.send(docs);
-    });
-});
-
-apiServer.get('/intervenciones', function(req, res) {
-
-    var collection = db.collection('intervenciones');
-    var noShow = {
-        '_id': 0
-    };
-
-    if (!req.params.order) {
-        req.params.order = {};
-        req.params.order['fechahora'] = -1;
-    }
-
-    collection
-        .find(req.params.q, req.params.only || req.params.not || noShow)
-        .limit(req.params.limit)
-        .skip(req.params.skip)
-        .sort(req.params.order)
-        .toArray(function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            if (req.params.count == 1) {
-                collection.find(req.params.q).count(function(err, resp) {
-                    if (err) {
-                        res.send(err);
-                        return;
-                    }
-                    var resul = {};
-                    resul.totalObjects = resp;
-                    resul.result = docs;
-                    res.send(resul);
-                });
-            } else {
-                res.send(docs);
-            }
-        });
-});
-
-
-apiServer.get('/circunscripciones', function(req, res) {
-    circunscripciones.get(req.params,function(err, docs) {
-     	if (err) {
-            res.send(err);
-            return;
-        }
-        res.send(docs);
-    });
-});
-
-apiServer.get('/circunscripcion/:id', function(req, res) {
-
-    var collection = db.collection('circunscripciones');
-    var noShow = {
-        '_id': 0
-    };
-
-    collection
-        .findOne({
-            'id': parseInt(req.params.id)
-        }, req.params.only || req.params.not || noShow, function(err, docs) {
-            if (err) {
-                res.send(err);
-                return;
-            }
-            res.send(docs);
-        });
-});
+apiServer.get('/diputados', getDiputados);
+apiServer.get('/diputados/bienes', getBienes);
+apiServer.get('/diputado/:id', getDiputado);
+apiServer.get('/diputado/:id/votaciones', getVotacionesDiputado);
+apiServer.get('/diputado/:id/iniciativas', getIniciativasDiputado);
+apiServer.get('/diputado/:id/bienes', getBienesDiputado);
+apiServer.get('/grupos', getGrupos);
+apiServer.get('/grupo/:id', getGrupo);
+apiServer.get('/grupo/:id/diputados', getDiputadosGrupo);
+apiServer.get('/grupo/:id/iniciativas', getIniciativasGrupo);
+apiServer.get('/formaciones', getFormaciones);
+apiServer.get('/formacion/:id', getFormacion);
+apiServer.get('/votaciones', getVotaciones);
+apiServer.get('/votacion/:session', getVotacionesSesion);
+apiServer.get('/votacion/:session/:votacion', getVotacionSesion);
+apiServer.get('/iniciativas', getIniciativas);
+apiServer.get('/intervenciones', getIntervenciones);
+apiServer.get('/circunscripciones', getCircunscripciones);
+apiServer.get('/circunscripcion/:id', getCircunscripcion);
 
 apiServer.get('/circunscripcion/:id/diputados', function(req, res) {
 
@@ -596,8 +202,221 @@ apiServer.get('/test', function(req, res) {
 
 });
 
+/**** handlers ********/
+
+function getDiputados(req, res) {
+    diputados.get(req.params,function(err, docs) {
+        response(err,docs,res);
+    });
+}
+
+function getBienes(req, res) {
+    bienes.get(req.params,function(err, docs) {
+        response(err,docs,res);
+    });
+}
+
+function getDiputado(req, res) {
+    diputados.getById(req.params,function(err, docs) {
+        response(err,docs,res);
+    });
+}
+
+function getVotacionesDiputado(req, res) {
+    diputados.getVotaciones(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        req.params.nombre = docs.nombre;
+        req.params.apellidos = docs.apellidos;
+        votaciones.getByDiputado(req.params,function(err, docs) {
+            response(err,docs,res);
+        });
+    });
+}
+
+function getIniciativasDiputado(req, res) {
+    diputados.getVotaciones(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        if (!req.params.order) {
+            req.params.order = {};
+            req.params.order['presentadoJS'] = -1;
+        }
+
+        req.params.q['autores'] = {
+            $in: [parseInt(req.params.id)]
+        };
+        req.params.q['tipo_autor'] = "Diputado";
+        iniciativas.getByDiputado(req.params,function(err, docs) {
+            response(err,docs,res);
+        });
+    });
+}
+
+function getBienesDiputado(req, res) {
+    bienes.getByDiputado(req.params,function(err, docs) {
+        response(err,docs,res);
+    });
+}
+
+function getGrupos(req, res) {
+    grupos.get(req.params,function(err, docs) {
+        response(err,docs,res);
+    });
+}
+
+function getGrupo(req, res) {
+    grupos.getById(req.params,function(err, docs) {
+        response(err,docs,res);
+    });
+}
+
+function getDiputadosGrupo(req, res) {
+    grupos.getDiputados(req.params,function(err,docs){
+         if (err) {
+            res.send(err);
+            return;
+        }
+
+        req.params.q['grupo'] = docs.nombre;
+
+        diputados.getByGrupo(req.params,function(err,docs){
+            response(err,docs,res);
+        });
+    });
+}
+
+function getIniciativasGrupo(req, res) {
+
+    grupos.getIniciativas(req.params, function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+
+        req.params.q['tipo_autor'] = "Grupo";
+        
+        iniciativas.getByGrupo(req.params,function(err,docs){
+            response(err,docs,res);
+        });
+    });
+}
+
+function getFormaciones(req, res) {
+    formaciones.get(req.params,function(err, docs) {
+        response(err,docs,res); 
+    });
+}
+
+function getFormacion(req, res) {
+    formaciones.getById(req.params,function(err,docs){
+        response(err,docs,res);
+    });
+}
+
+function getVotaciones(req, res) {
+    votaciones.get(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        if (req.params.count == 1) {
+            return votaciones.count(req.params.q,function(err, resp) {
+                if (err) {
+                    res.send(err);
+                    return;
+                }
+                var resul = {};
+                resul.totalObjects = resp;
+                resul.result = docs;
+                res.send(resul);
+            });
+        }
+        res.send(docs);
+    });
+}
+
+function getVotacionesSesion(req, res) {
+    votaciones.getBySesion(req.params,function(err, docs){
+        response(err,docs,res);
+    });
+}
+
+function getVotacionSesion(req, res) {    
+    votaciones.getBySesionById(req.params,function(err, docs){
+        response(err,docs,res);
+    });
+}
+
+function getIniciativas(req, res) {
+    iniciativas.get(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        if (req.params.count == 1) {
+            return iniciativas.count(req.params,function(err, resp) {
+                if (err) {
+                    res.send(err);
+                    return;
+                }
+                var resul = {};
+                resul.totalObjects = resp;
+                resul.result = docs;
+                res.send(resul);
+            });
+        }
+        res.send(docs);
+    });
+}
+
+function getIntervenciones(req, res) {
+    intervenciones.get(req.params,function(err, docs) {
+        if (err) {
+            res.send(err);
+            return;
+        }
+        if (req.params.count == 1) {
+            return intervenciones.count(req.params,function(err, resp) {
+                if (err) {
+                    res.send(err);
+                    return;
+                }
+                var resul = {};
+                resul.totalObjects = resp;
+                resul.result = docs;
+                res.send(resul);
+            });
+        }
+        res.send(docs);
+    });
+}
+
+function getCircunscripciones(req, res) {
+    circunscripciones.get(req.params,function(err, docs) {
+        response(err,docs,res);
+    });
+}
+
+function getCircunscripcion(req, res) {
+    circunscripciones.getById(req.params,function(err, docs) {
+        response(err,docs,res);
+    });
+}
 
 /**** funtions ********/
+
+function response(err,docs,res){
+    if (err) {
+        res.send(err);
+        return;
+    }
+    res.send(docs);
+}
 
 function headers(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");

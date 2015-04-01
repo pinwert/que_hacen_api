@@ -21,6 +21,14 @@ function get(params,cb){
         .toArray(cb);
 }
 
+function getById(params,cb){
+    collection
+        .findOne({
+            'id': parseInt(params.id)
+        }, params.only || params.not || noShow, cb);
+}
+
 module.exports = {
-    get:get
+    get:get,
+    getById:getById
 }

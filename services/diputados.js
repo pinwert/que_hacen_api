@@ -45,6 +45,32 @@ function getVotaciones(params, cb){
         }, cb);
 }
 
+function getIniciativas(params,cb){
+    collection
+        .findOne({
+            'id': parseInt(params.id)
+        }, {
+            apellidos: 1,
+            nombre: 1
+        },cb);
+}
+
+function getByGrupo(params, cb){
+    if (!params.order) {
+        params.order = {};
+        params.order['normalized.apellidos'] = 1;
+        params.order['normalized.nombre'] = 1;
+    }
+
+    params.q['activo'] = 1;
+
+    collection
+        .find(params.q, params.only || params.not || noShow)
+        .sort(params.order)
+        .limit(params.limit)
+        .toArray(cb);
+}
+
 module.exports = {
     get:get
 }

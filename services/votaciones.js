@@ -54,6 +54,41 @@ function getByDiputado(params,cb){
         .toArray(cb);
 }
 
+function getBySesion(params,cb){
+    if (!params.order) {
+        params.order = {};
+        params.order['fecha'] = -1;
+    }
+
+    params.q['xml.resultado.informacion.sesion'] = params.session;
+
+    collection
+        .find(params.q, params.only || params.not || noShow)
+        .limit(params.limit)
+        .sort(params.order)
+        .toArray(cb);
+}
+
+function getBySesionById(params,cb){
+    if (!params.order) {
+        params.order = {};
+        params.order['fecha'] = -1;
+    }
+
+    params.q['xml.resultado.informacion.sesion'] = params.session;
+    params.q['xml.resultado.informacion.numerovotacion'] = params.votacion;
+
+    collection
+        .find(params.q, params.only || params.not || noShow)
+        .limit(params.limit)
+        .sort(params.order)
+        .toArray(cb);
+}
+
 module.exports = {
-    get:get
+    get:get,
+    count:count,
+    getByDiputado:getByDiputado,
+    getBySesion:getBySesion,
+    getBySesionById:getBySesionById
 }

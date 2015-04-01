@@ -22,9 +22,37 @@ function get(params,cb){
 }
 
 function count(params,cb){
-    collection.find(req.params.q).count(cb);
+    collection.find(params.q).count(cb);
+}
+
+function getByDiputado(params,cb){
+    collection
+        .find(params.q, params.only || params.not || noShow)
+        .sort(params.order)
+        .limit(params.limit)
+        .toArray(cb);
+}
+
+function getByGrupo(params,cb){
+    if (!params.order) {
+        params.order = {};
+        params.order['presentadoJS'] = -1;
+    }
+
+    params.q['autores'] = {
+        $in: [parseInt(params.id)]
+    };
+
+    collection
+        .find(params.q, params.only || params.not || noShow)
+        .sort(params.order)
+        .limit(params.limit)
+        .toArray(cb);
 }
 
 module.exports = {
-    get:get
+    get:get,
+    count:count,
+    getByDiputado:getByDiputado,
+    getByGrupo:getByGrupo
 }
